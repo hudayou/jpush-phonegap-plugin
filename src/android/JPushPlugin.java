@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import android.util.Log;
+
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaInterface;
 import org.apache.cordova.CordovaPlugin;
@@ -28,6 +30,7 @@ import cn.jpush.android.data.JPushLocalNotification;
 import cn.jpush.android.api.TagAliasCallback;
 
 public class JPushPlugin extends CordovaPlugin {
+	public static final String TAG = "JPushPlugin";
 	private final static List<String> methodList = 
 			Arrays.asList(
 					"getRegistrationID",
@@ -52,6 +55,10 @@ public class JPushPlugin extends CordovaPlugin {
 	
 	private ExecutorService threadPool = Executors.newFixedThreadPool(1);
 	private static JPushPlugin instance;
+
+	private static String gECB;
+	private static CordovaWebView gWebView;
+	private static JSONObject gCachedExtras = null;
 
 	public static String notificationAlert;
 	public static Map<String, Object> notificationExtras=new HashMap<String, Object>();
@@ -127,20 +134,8 @@ public class JPushPlugin extends CordovaPlugin {
 		}
 	}
 	static void transmitOpen(String alert, Map<String, Object> extras) {
-		if (instance == null) {
-			return;
-		}
 		JSONObject data = openNotificationObject(alert, extras);
-		String js = String
-				.format("window.plugins.jPushPlugin.openNotificationInAndroidCallback('%s');",
-						data.toString());
-		try {
-			instance.webView.sendJavascript(js);
-		} catch (NullPointerException e) {
-
-		} catch (Exception e) {
-
-		}
+		sendExtras(data);
 	}
 	@Override
 	public boolean execute(final String action, final JSONArray data,
@@ -148,6 +143,8 @@ public class JPushPlugin extends CordovaPlugin {
 		if (!methodList.contains(action)) {
 			return false;
 		}
+		gWebView = this.webView;
+		gECB = "angular.element(document.querySelector('[ng-app]')).injector().get('$jPush').onNotification";
 		threadPool.execute(new Runnable() {
 			@Override
 			public void run() {
@@ -160,14 +157,54 @@ public class JPushPlugin extends CordovaPlugin {
 				}
 			}
 		});
+		if ( gCachedExtras != null) {
+			Log.v(TAG, "sending cached extras");
+			sendExtras(gCachedExtras);
+			gCachedExtras = null;
+		}
 		return true;
 	}
-	
+
 	void init(JSONArray data,CallbackContext callbackContext){
 		JPushInterface.init(this.cordova.getActivity().getApplicationContext());
 		//callbackContext.success();
 	}
+
+
+	/*
+	 * Sends a json object to the client as parameter to a method which is defined in gECB.
+	 */
+	public static void sendJavascript(JSONObject _json) {
+		String _d = "javascript:" + gECB + "(" + _json.toString() + ")";
+		Log.v(TAG, "sendJavascript: " + _d);
+
+		if (gWebView != null) {
+			gWebView.sendJavascript(_d);
+		}
+	}
+	/*
+	 * Sends the pushbundle extras to the client application.
+	 * If the client application isn't currently active, it is cached for later processing.
+	 */
+	public static void sendExtras(JSONObject extras)
+	{
+		if (extras != null) {
+			if (gECB != null && gWebView != null) {
+				sendJavascript(extras);
+			} else {
+				Log.v(TAG, "sendExtras: caching extras to send at a later time.");
+				gCachedExtras = extras;
+			}
+		}
+	}
 	
+	@Override
+	public void onDestroy() {
+		super.onDestroy();
+		gECB = null;
+		gWebView = null;
+	}
+
 	void setDebugMode(JSONArray data, CallbackContext callbackContext) {
 		boolean mode;
 		try {
