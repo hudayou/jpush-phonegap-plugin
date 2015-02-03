@@ -10,6 +10,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import android.app.NotificationManager;
+import android.content.Context;
 import android.util.Log;
 
 import org.apache.cordova.CallbackContext;
@@ -59,6 +61,7 @@ public class JPushPlugin extends CordovaPlugin {
 	private static String gECB;
 	private static CordovaWebView gWebView;
 	private static JSONObject gCachedExtras = null;
+	private static boolean gForeground = false;
 
 	public static String notificationAlert;
 	public static Map<String, Object> notificationExtras=new HashMap<String, Object>();
@@ -70,6 +73,7 @@ public class JPushPlugin extends CordovaPlugin {
 	@Override
 	public void initialize(CordovaInterface cordova, CordovaWebView webView) {
 		super.initialize(cordova, webView);
+		gForeground = true;
 		//JPushInterface.setDebugMode(true);
 		//JPushInterface.init(cordova.getActivity().getApplicationContext());
 	}
@@ -82,7 +86,12 @@ public class JPushPlugin extends CordovaPlugin {
 			data.put("message", message);
 			JSONObject jExtras = new JSONObject();
 			for(Entry<String,Object> entry:extras.entrySet()){
-				jExtras.put(entry.getKey(),entry.getValue());
+				if(entry.getKey().equals("cn.jpush.android.EXTRA")){
+					JSONObject jo = new JSONObject((String)entry.getValue());
+					jExtras.put("cn.jpush.android.EXTRA", jo);
+				}else{
+					jExtras.put(entry.getKey(),entry.getValue());
+				}
 			}
 			if(jExtras.length()>0)
 			{
@@ -118,20 +127,8 @@ public class JPushPlugin extends CordovaPlugin {
 		return data;
 	}
 	static void transmitPush(String message, Map<String, Object> extras) {
-		if (instance == null) {
-			return;
-		}
 		JSONObject data = notificationObject(message, extras);
-		String js = String
-				.format("window.plugins.jPushPlugin.receiveMessageInAndroidCallback('%s');",
-						data.toString());
-		try {
-			instance.webView.sendJavascript(js);
-		} catch (NullPointerException e) {
-
-		} catch (Exception e) {
-
-		}
+		sendExtras(data);
 	}
 	static void transmitOpen(String alert, Map<String, Object> extras) {
 		JSONObject data = openNotificationObject(alert, extras);
@@ -197,12 +194,32 @@ public class JPushPlugin extends CordovaPlugin {
 			}
 		}
 	}
-	
+
+	@Override
+	public void onPause(boolean multitasking) {
+		super.onPause(multitasking);
+		gForeground = false;
+		final NotificationManager notificationManager = (NotificationManager) cordova.getActivity().getSystemService(Context.NOTIFICATION_SERVICE);
+		notificationManager.cancelAll();
+	}
+
+	@Override
+	public void onResume(boolean multitasking) {
+		super.onResume(multitasking);
+		gForeground = true;
+	}
+
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
+		gForeground = false;
 		gECB = null;
 		gWebView = null;
+	}
+
+	public static boolean isInForeground()
+	{
+		return gForeground;
 	}
 
 	void setDebugMode(JSONArray data, CallbackContext callbackContext) {
