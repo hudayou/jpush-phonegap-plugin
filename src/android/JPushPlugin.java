@@ -75,7 +75,7 @@ public class JPushPlugin extends CordovaPlugin {
 		super.initialize(cordova, webView);
 		gForeground = true;
 		//JPushInterface.setDebugMode(true);
-		//JPushInterface.init(cordova.getActivity().getApplicationContext());
+		JPushInterface.init(cordova.getActivity().getApplicationContext());
 	}
 
 
@@ -163,7 +163,7 @@ public class JPushPlugin extends CordovaPlugin {
 	}
 
 	void init(JSONArray data,CallbackContext callbackContext){
-		JPushInterface.init(this.cordova.getActivity().getApplicationContext());
+		// JPushInterface.init(this.cordova.getActivity().getApplicationContext());
 		//callbackContext.success();
 	}
 
