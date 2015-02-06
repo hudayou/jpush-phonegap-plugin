@@ -24,7 +24,7 @@ public class MyReceiver extends BroadcastReceiver {
         	handlingReceivedMessage(intent);
         } else if (JPushInterface.ACTION_NOTIFICATION_RECEIVED.equals(intent.getAction()) && JPushPlugin.isInForeground()) {
         	handlingReceivedMessage(intent);
-        } else if (JPushInterface.ACTION_NOTIFICATION_OPENED.equals(intent.getAction()) && !JPushPlugin.isInForeground()) {
+        } else if (JPushInterface.ACTION_NOTIFICATION_OPENED.equals(intent.getAction())) {
         	handlingNotificationOpen(context,intent);
         } else if (JPushInterface.ACTION_RICHPUSH_CALLBACK.equals(intent.getAction())) {
         
