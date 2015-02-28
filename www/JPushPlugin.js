@@ -225,10 +225,8 @@ JPushPlugin.prototype.isPushStopped = function(callback){
 }
 
 JPushPlugin.prototype.init = function(){
-	if(device.platform == "Android") {
-	    data=[];
-		this.call_native("init",data,null);
-	}
+    data=[];
+    this.call_native("init",data,null);
 }
 
 JPushPlugin.prototype.setDebugMode = function(mode){

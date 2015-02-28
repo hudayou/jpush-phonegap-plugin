@@ -11,6 +11,14 @@
 
 @implementation JPushPlugin
 
+@synthesize notificationMessage;
+@synthesize isInline;
+
+@synthesize callbackId;
+@synthesize notificationCallbackId;
+@synthesize callback;
+
+
 - (CDVPlugin*)initWithWebView:(UIWebView*)theWebView{
     if (self=[super initWithWebView:theWebView]) {
         
@@ -22,6 +30,17 @@
 
     }
     return self;
+}
+
+- (void)init:(CDVInvokedUrlCommand*)command;
+{
+    self.callbackId = command.callbackId;
+    self.callback = @"angular.element(document.querySelector('[ng-app]')).injector().get('$jPush').onNotification";
+
+    isInline = NO;
+
+    if (notificationMessage)            // if there is a pending startup notification
+        [self notificationReceived];    // go ahead and process it
 }
 
 -(void)setTagsWithAlias:(CDVInvokedUrlCommand*)command{
@@ -208,6 +227,27 @@
         
     });
 
+}
+
+- (void)notificationReceived {
+    NSLog(@"Notification received");
+
+    if (notificationMessage && self.callback)
+    {
+        NSError  *error;
+        NSData   *jsonData   = [NSJSONSerialization dataWithJSONObject:notificationMessage options:0 error:&error];
+        NSString *jsonStr = [[NSString alloc]initWithData:jsonData encoding:NSUTF8StringEncoding];
+
+        if (isInline)
+            isInline = NO;
+
+        NSLog(@"Msg: %@", jsonStr);
+
+        NSString * jsCallBack = [NSString stringWithFormat:@"%@(%@);", self.callback, jsonStr];
+        [self.webView stringByEvaluatingJavaScriptFromString:jsCallBack];
+
+        self.notificationMessage = nil;
+    }
 }
 
 @end

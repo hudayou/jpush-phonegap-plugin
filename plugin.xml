@@ -25,6 +25,9 @@
                 </feature>
             </config-file>
 
+            <header-file src="src/ios/Plugins/AppDelegate+notification.h" />
+            <source-file src="src/ios/Plugins/AppDelegate+notification.m" />
+
             <header-file src="src/ios/Plugins/JPushPlugin.h"/>
             <source-file src="src/ios/Plugins/JPushPlugin.m"/>
            
